@@ -6,17 +6,21 @@ window.onload = async function() {
 };
 
 async function fetchUserDataFromSupabase(telegramId) {
-    const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('telegram_id', telegramId)
-        .single();
+    try {
+        const { data, error } = await window.supabase
+            .from('users')
+            .select('*')
+            .eq('telegram_id', telegramId)
+            .single();
 
-    if (data) {
-        window.appState.currentUser = data;
-        window.appState.currentBalance = data.balance;
-        localStorage.setItem('callpay_user', JSON.stringify(window.appState.currentUser));
-        localStorage.setItem('callpay_balance', window.appState.currentBalance);
+        if (data) {
+            window.appState.currentUser = data;
+            window.appState.currentBalance = data.balance;
+            localStorage.setItem('callpay_user', JSON.stringify(window.appState.currentUser));
+            localStorage.setItem('callpay_balance', window.appState.currentBalance);
+        }
+    } catch (err) {
+        console.error("User fetch error:", err);
     }
 }
 
@@ -31,7 +35,9 @@ window.updateUIState = function() {
     if (dashBalanceDisplay) dashBalanceDisplay.innerText = `৳${window.appState.currentBalance}`;
     
     if (window.appState.currentUser) {
-        if (navAvatar) navAvatar.innerText = window.appState.currentUser.name ? window.appState.currentUser.name[0].toUpperCase() : 'U';
+        if (navAvatar) {
+            navAvatar.innerText = window.appState.currentUser.name ? window.appState.currentUser.name[0].toUpperCase() : 'U';
+        }
         if (creatorPanel) {
             if (window.appState.currentUser.role === 'creator') {
                 creatorPanel.classList.remove('hidden');
@@ -57,7 +63,9 @@ window.showPage = function(pageId) {
         window.scrollTo(0, 0);
     }
     if (pageId === 'adminPage') {
-        window.loadAdminDashboardData();
+        if (typeof window.loadAdminDashboardData === 'function') {
+            window.loadAdminDashboardData();
+        }
     }
 }
 
@@ -66,7 +74,9 @@ window.checkAuthAndRedirectProfile = function() {
         alert("প্রথমে লগইন বা রেজিস্ট্রেশন করুন।");
         window.showPage('loginPage');
     } else {
-        window.populateProfileData();
+        if (typeof window.populateProfileData === 'function') {
+            window.populateProfileData();
+        }
         window.showPage('profilePage');
     }
 }
@@ -81,4 +91,4 @@ window.toggleCreatorRateField = function() {
             container.classList.add('hidden');
         }
     }
-}
+    }
