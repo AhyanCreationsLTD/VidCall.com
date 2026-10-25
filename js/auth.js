@@ -2,13 +2,13 @@
 // REAL AUTHENTICATION & REGISTRATION LOGIC
 // ==========================================
 
-// টেলিগ্রাম বট কনফিগারেশন (আপনার বটের টোকেন এবং চ্যানেল আইডি এখানে বসাবেন)
+// টেলিগ্রাম বট কনফিগারেশন
 const TG_BOT_TOKEN = '8707996751:AAFTmG8-A4bTP2SOIfYr4xG04wSTjOJVe2U';
-const TG_CHANNEL_ID = '-1003936338535'; // যেমন: -100xxxxxxxxxx অথবা @channelusername
+const TG_CHANNEL_ID = '-1003936338535';
 
 // প্রাইভেট চ্যানেলে নোটিফিকেশন পাঠানোর ফাংশন
 async function sendTelegramChannelNotification(user) {
-    if (!TG_BOT_TOKEN || TG_BOT_TOKEN === 'YOUR_BOT_TOKEN_HERE') return;
+    if (!TG_BOT_TOKEN) return;
 
     const message = `🔔 **নতুন ইউজার রেজিস্ট্রেশন সফল!**\n\n` +
                     `👤 **নাম:** ${user.name}\n` +
@@ -95,18 +95,18 @@ window.sendRegisterCode = async function() {
 }
 
 window.verifyAndRegister = async function() {
-    // ডাইরেক্ট রেজিস্ট্রেশন হয়ে যাওয়ায় এটি খালি রাখা হলো
+    // ডাইরেক্ট রেজিস্ট্রেশন হওয়ায় খালি রাখা হয়েছে
 }
 
+// ৩. লগইন ট্রিগার (ইউজারনেম দিয়ে সরাসরি লগইন করার জন্য)
 window.sendLoginCode = function() {
     window.verifyAndLogin();
 }
 
-// ২. রিয়েল লগইন এবং এডমিন রিডাইরেক্ট সিস্টেম
 window.verifyAndLogin = async function() {
     const telegramInput = document.getElementById('loginUsername').value.trim();
     if (!telegramInput) {
-        alert("দয়া করে টেলিগ্রাম ইউজারনেম দিন।");
+        alert("দয়া করে আপনার টেলিগ্রাম ইউজারনেম দিন।");
         return;
     }
 
@@ -138,7 +138,7 @@ window.verifyAndLogin = async function() {
     
     window.updateUIState();
 
-    // ৩. এডমিন নাকি সাধারণ ইউজার চেক করে রিডাইরেক্ট করা
+    // ৪. এডমিন নাকি সাধারণ ইউজার চেক করে রিডাইরেক্ট করা
     if (data.is_admin === true) {
         alert("এডমিন লগইন সফল হয়েছে! এডমিন প্যানেলে নিয়ে যাওয়া হচ্ছে...");
         window.location.href = 'vondo/nothing/7a2d3.html';
@@ -148,7 +148,7 @@ window.verifyAndLogin = async function() {
     }
 }
 
-// ৪. লগআউট সিস্টেম
+// ৫. লগআউট সিস্টেম
 window.logout = function() {
     localStorage.clear();
     window.appState.currentUser = null;
