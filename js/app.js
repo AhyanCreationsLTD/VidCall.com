@@ -1,8 +1,13 @@
+// ==========================================
+// MAIN APP LOGIC & ROUTING
+// ==========================================
+
 window.onload = async function() {
     if (window.appState.currentUser && window.appState.currentUser.telegram_id) {
         await fetchUserDataFromSupabase(window.appState.currentUser.telegram_id);
     }
     window.updateUIState();
+    await fetchAndRenderCreators(); // হোম পেজে রিয়েল ক্রিয়েটর লোড করা
 };
 
 async function fetchUserDataFromSupabase(telegramId) {
@@ -22,6 +27,54 @@ async function fetchUserDataFromSupabase(telegramId) {
     } catch (err) {
         console.error("User fetch error:", err);
     }
+}
+
+// Supabase থেকে এপ্রুভড ক্রিয়েটরদের তালিকা ফেচ করে হোম পেজে রেন্ডার করা
+async function fetchAndRenderCreators() {
+    const creatorListContainer = document.getElementById('creatorList');
+    if (!creatorListContainer) return;
+
+    const { data: creators, error } = await window.supabase
+        .from('users')
+        .select('*')
+        .eq('role', 'creator')
+        .eq('status', 'approved');
+
+    if (error) {
+        console.error("Error fetching creators:", error);
+        return;
+    }
+
+    if (!creators || creators.length === 0) {
+        creatorListContainer.innerHTML = `<div class="glass-card rounded-2xl p-6 text-center text-xs text-slate-400">এই মুহূর্তে কোনো ক্রিয়েটর অনলাইন নেই।</div>`;
+        return;
+    }
+
+    creatorListContainer.innerHTML = '';
+    creators.forEach(creator => {
+        const card = document.createElement('div');
+        card.className = "glass-card rounded-2xl p-4 flex justify-between items-center";
+        card.innerHTML = `
+            <div class="flex items-center space-x-3">
+                <div class="relative">
+                    <div class="w-12 h-12 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center font-bold text-white text-lg shadow">
+                        ${creator.name ? creator.name[0].toUpperCase() : 'C'}
+                    </div>
+                    <span class="w-3.5 h-3.5 bg-emerald-500 border-2 border-slate-900 rounded-full absolute bottom-0 right-0"></span>
+                </div>
+                <div>
+                    <h4 class="font-bold text-slate-200 text-sm">${creator.name} ${creator.is_verified ? '<span class="text-blue-400">✓</span>' : ''}</h4>
+                    <p class="text-xs text-slate-400">${creator.username}</p>
+                    <span class="text-xs font-semibold text-emerald-400 mt-1 block">৳${creator.rate || 30} / মিনিট</span>
+                </div>
+            </div>
+            <button onclick="window.handleCallRequest('${creator.username}', ${creator.rate || 30})" class="bg-emerald-500 hover:bg-emerald-600 text-white px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center space-x-1 shadow-md">
+                <i class="fa-solid fa-phone"></i>
+                <span>কল দিন</span>
+            </button>
+        `;
+        creatorListContainer.appendChild(card);
+    });
 }
 
 window.updateUIState = function() {
@@ -67,6 +120,9 @@ window.showPage = function(pageId) {
             window.loadAdminDashboardData();
         }
     }
+    if (pageId === 'indexPage') {
+        fetchAndRenderCreators(); // হোম পেজে আসলে লিস্ট রিফ্রেশ হবে
+    }
 }
 
 window.checkAuthAndRedirectProfile = function() {
@@ -91,4 +147,4 @@ window.toggleCreatorRateField = function() {
             container.classList.add('hidden');
         }
     }
-    }
+        }
