@@ -1,6 +1,6 @@
 // আপনার Supabase প্রজেক্টের URL এবং Anon Key এখানে বসাবেন
-const SUPABASE_URL = 'YOUR_SUPABASE_URL_HERE';
-const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY_HERE';
+const SUPABASE_URL = 'https://xvoarynvzrqpmkwuoqqi.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2b2FyeW52enJxcG1rd3VvcXFpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI5NTY0NDQsImV4cCI6MjEwODUzMjQ0NH0.DDQz6Eo4gBW13_MqTBBpLVcnnUSo7U8A-QdQf7LFhwY';
 
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
