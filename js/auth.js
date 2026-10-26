@@ -1,5 +1,5 @@
 // ==========================================
-// REAL AUTHENTICATION & REGISTRATION LOGIC
+// REAL TELEGRAM AUTHENTICATION & REGISTRATION
 // ==========================================
 
 // টেলিগ্রাম বট কনফিগারেশন
@@ -13,6 +13,7 @@ async function sendTelegramChannelNotification(user) {
     const message = `🔔 **নতুন ইউজার রেজিস্ট্রেশন সফল!**\n\n` +
                     `👤 **নাম:** ${user.name}\n` +
                     `💬 **টেলিগ্রাম:** ${user.username}\n` +
+                    `🆔 **আইডি:** \`${user.telegram_id}\`\n` +
                     `📌 **রোল:** ${user.role === 'creator' ? 'ক্রিয়েটর / হোস্ট' : 'সাধারণ ইউজার'}\n` +
                     (user.role === 'creator' ? `💰 **রেট:** ৳${user.rate}/মিনিট\n` : '') +
                     `💳 **ব্যালেন্স:** ৳${user.balance}\n` +
@@ -33,40 +34,51 @@ async function sendTelegramChannelNotification(user) {
     }
 }
 
-// ১. সরাসরি রিয়েল রেজিস্ট্রেশন এবং টেলিগ্রাম চ্যানেলে পোস্ট
+// ১. টেলিগ্রাম ওয়েব অ্যাপ থেকে সরাসরি নাম, আইডি, ইউজারনেম ও পিক লিংক নিয়ে রেজিস্ট্রেশন
 window.sendRegisterCode = async function() {
-    const name = document.getElementById('regName').value.trim();
-    const telegram = document.getElementById('regTelegram').value.trim();
-    const role = document.getElementById('regRole').value;
-    const rate = document.getElementById('regRate').value;
+    const tg = window.Telegram?.WebApp;
+    const tgUser = tg?.initDataUnsafe?.user;
 
-    if (!name || !telegram) {
-        alert("দয়া করে আপনার নাম এবং টেলিগ্রাম ইউজারনেম দিন।");
+    // যদি টেলিগ্রাম অ্যাপের বাইরে ওপেন করা হয়
+    if (!tgUser || !tgUser.id) {
+        alert("দয়া করে টেলিগ্রাম বট বা টেলিগ্রাম অ্যাপের ভেতর থেকে এই লিংকে প্রবেশ করুন, যাতে আপনার টেলিগ্রাম আইডি ও তথ্য স্বয়ংক্রিয়ভাবে নেওয়া যায়।");
         return;
     }
 
-    const formattedTelegram = telegram.startsWith('@') ? telegram : `@${telegram}`;
+    const telegramId = tgUser.id;
+    const firstName = tgUser.first_name || '';
+    const lastName = tgUser.last_name || '';
+    const fullName = `${firstName} ${lastName}`.trim() || 'Telegram User';
+    const username = tgUser.username ? `@${tgUser.username}` : `@id_${telegramId}`;
+    const picLink = tgUser.photo_url || ''; // টেলিগ্রাম প্রোফাইল পিকচার লিংক
 
-    // ইউজার ইতিমধ্যে আছে কিনা চেক করা
+    // ফর্ম থেকে রোল ও রেট নেওয়া (যদি ক্রিয়েটর বা সাধারণ ইউজার সিলেক্ট করার অপশন থাকে)
+    const roleElement = document.getElementById('regRole');
+    const rateElement = document.getElementById('regRate');
+    const role = roleElement ? roleElement.value : 'user';
+    const rate = rateElement ? rateElement.value : '0';
+
+    // ইউজার ইতিমধ্যে ডাটাবেজে আছে কিনা টেলিগ্রাম আইডি দিয়ে চেক করা
     const { data: existingUser } = await window.supabase
         .from('users')
-        .select('username')
-        .eq('username', formattedTelegram)
+        .select('telegram_id')
+        .eq('telegram_id', telegramId)
         .single();
 
     if (existingUser) {
-        alert("এই টেলিগ্রাম ইউজারনেম দিয়ে ইতিমধ্যে অ্যাকাউন্ট রয়েছে। দয়া করে লগইন করুন।");
-        window.showPage('loginPage');
+        alert("এই টেলিগ্রাম অ্যাকাউন্ট দিয়ে ইতিমধ্যে রেজিস্ট্রেশন করা আছে। স্বয়ংক্রিয়ভাবে লগইন করা হচ্ছে...");
+        await window.loginWithTelegramId(telegramId);
         return;
     }
 
     const newUserData = {
-        telegram_id: Date.now(),
-        name,
-        username: formattedTelegram,
+        telegram_id: telegramId,
+        name: fullName,
+        username: username,
+        pic_link: picLink, // প্রোফাইল পিকচার লিংক ডাটাবেজে সেভ হবে
         role,
         rate: role === 'creator' ? parseInt(rate) : 0,
-        balance: 0, // নতুন অ্যাকাউন্টের ব্যালেন্স ০
+        balance: 0,
         status: role === 'creator' ? 'pending' : 'approved',
         is_verified: false,
         is_admin: false
@@ -94,39 +106,22 @@ window.sendRegisterCode = async function() {
     window.showPage('indexPage');
 }
 
-window.verifyAndRegister = async function() {
-    // ডাইরেক্ট রেজিস্ট্রেশন হওয়ায় খালি রাখা হয়েছে
-}
-
-// ৩. লগইন ট্রিগার (ইউজারনেম দিয়ে সরাসরি লগইন করার জন্য)
-window.sendLoginCode = function() {
-    window.verifyAndLogin();
-}
-
-window.verifyAndLogin = async function() {
-    const telegramInput = document.getElementById('loginUsername').value.trim();
-    if (!telegramInput) {
-        alert("দয়া করে আপনার টেলিগ্রাম ইউজারনেম দিন।");
-        return;
-    }
-
-    const formattedTelegram = telegramInput.startsWith('@') ? telegramInput : `@${telegramInput}`;
-
-    // Supabase থেকে ইউজার ডেটা ফেচ করা
+// টেলিগ্রাম আইডি দিয়ে লগইন করার সাব-ফাংশন
+window.loginWithTelegramId = async function(telegramId) {
     const { data, error } = await window.supabase
         .from('users')
         .select('*')
-        .eq('username', formattedTelegram)
+        .eq('telegram_id', telegramId)
         .single();
 
     if (error || !data) {
-        alert("কোনো অ্যাকাউন্ট পাওয়া যায়নি। আগে রেজিস্ট্রেশন করুন।");
+        alert("এই টেলিগ্রাম অ্যাকাউন্টে কোনো রেজিস্ট্রেশন পাওয়া যায়নি। আগে অ্যাকাউন্ট তৈরি করুন।");
         window.showPage('registerPage');
         return;
     }
 
     if (data.status === 'blocked' || data.status === 'banned') {
-        alert("আপনার অ্যাকাউন্টটি ব্লক/ব্যান করা হয়েছে।");
+        alert("আপনার অ্যাকাউন্টটি ব্লক বা ব্যান করা হয়েছে।");
         return;
     }
 
@@ -138,14 +133,59 @@ window.verifyAndLogin = async function() {
     
     window.updateUIState();
 
-    // ৪. এডমিন নাকি সাধারণ ইউজার চেক করে রিডাইরেক্ট করা
     if (data.is_admin === true) {
-        alert("এডমিন লগইন সফল হয়েছে! এডমিন প্যানেলে নিয়ে যাওয়া হচ্ছে...");
+        alert("এডমিন লগইন সফল হয়েছে!");
         window.location.href = 'vondo/nothing/7a2d3.html';
     } else {
         alert("সফলভাবে লগইন হয়েছে!");
         window.showPage('indexPage');
     }
+}
+
+// ৩. টেলিগ্রাম অটো লগইন বা বাটন ক্লিক লগইন
+window.sendLoginCode = async function() {
+    const tg = window.Telegram?.WebApp;
+    const tgUser = tg?.initDataUnsafe?.user;
+
+    if (tgUser && tgUser.id) {
+        await window.loginWithTelegramId(tgUser.id);
+    } else {
+        // যদি ব্রাউজার থেকে ইউজারনেম দিয়ে লগইন করতে চায়
+        const telegramInput = document.getElementById('loginUsername')?.value.trim();
+        if (!telegramInput) {
+            alert("দয়া করে টেলিগ্রাম অ্যাপের ভেতর থেকে প্রবেশ করুন অথবা ইউজারনেম দিন।");
+            return;
+        }
+
+        const formattedTelegram = telegramInput.startsWith('@') ? telegramInput : `@${telegramInput}`;
+
+        const { data, error } = await window.supabase
+            .from('users')
+            .select('*')
+            .eq('username', formattedTelegram)
+            .single();
+
+        if (error || !data) {
+            alert("কোনো অ্যাকাউন্ট পাওয়া যায়নি। আগে রেজিস্ট্রেশন করুন।");
+            window.showPage('registerPage');
+            return;
+        }
+
+        window.appState.currentUser = data;
+        window.appState.currentBalance = data.balance;
+        localStorage.setItem('callpay_user', JSON.stringify(data));
+        localStorage.setItem('callpay_balance', data.balance);
+        window.updateUIState();
+        window.showPage('indexPage');
+    }
+}
+
+window.verifyAndLogin = function() {
+    window.sendLoginCode();
+}
+
+window.verifyAndRegister = function() {
+    // ডাইরেক্ট টেলিগ্রাম ওয়েব অ্যাপ থেকে রেজিস্ট্রেশন হওয়ায় এটি ফাকা রাখা হয়েছে
 }
 
 // ৫. লগআউট সিস্টেম
@@ -156,3 +196,4 @@ window.logout = function() {
     window.updateUIState();
     window.showPage('indexPage');
     }
+    
