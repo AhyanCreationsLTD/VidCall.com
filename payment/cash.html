@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CallPay - Cash Out</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Supabase JS SDK CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Canvas Confetti for Animation -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+        }
+        .glass-card {
+            background: rgba(30, 41, 59, 0.75);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        @keyframes scaleUp {
+            from { transform: scale(0.8); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        .animate-scale { animation: scaleUp 0.3s ease-out forwards; }
+        }
+    </style>
+</head>
+<body class="min-h-screen pb-12 flex flex-col justify-between">
+
+    <!-- Header / Navbar -->
+    <header class="glass-card sticky top-0 z-40 px-4 py-3 flex justify-between items-center shadow-md max-w-md mx-auto w-full">
+        <div class="flex items-center space-x-2 cursor-pointer" onclick="window.location.href='../index.html'">
+            <div class="w-9 h-9 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-500 flex items-center justify-center font-bold text-white shadow-md">
+                <i class="fa-solid fa-money-bill-transfer text-sm"></i>
+            </div>
+            <span class="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-teal-400">Cash Out</span>
+        </div>
+
+        <button onclick="window.location.href='../index.html'" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-xs px-3 py-1.5 rounded-xl font-bold transition-all">
+            <i class="fa-solid fa-house mr-1"></i> হোম পেজ
+        </button>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="max-w-md mx-auto px-4 mt-6 w-full space-y-4">
+        
+        <!-- Balance Cards -->
+        <div class="grid grid-cols-2 gap-3">
+            <div class="glass-card rounded-2xl p-4 border-slate-700 space-y-1">
+                <span class="text-[11px] text-slate-400 block">Your Balance</span>
+                <div id="totalBalanceDisplay" class="text-xl font-bold text-amber-400">৳০</div>
+            </div>
+            <div class="glass-card rounded-2xl p-4 border-emerald-500/30 space-y-1 bg-emerald-950/20">
+                <span class="text-[11px] text-emerald-400 block font-semibold">Withdrawable Balance</span>
+                <div id="withdrawableBalanceDisplay" class="text-xl font-bold text-emerald-400">৳০</div>
+            </div>
+        </div>
+
+        <!-- Cash Out Form -->
+        <div class="glass-card rounded-2xl p-5 space-y-4 border-slate-700">
+            <h2 class="text-sm font-bold text-white flex items-center space-x-2 border-b border-slate-700/50 pb-2">
+                <i class="fa-solid fa-wallet text-emerald-400"></i>
+                <span>উত্তোলন ফর্ম (Cash Out)</span>
+            </h2>
+
+            <div class="space-y-3">
+                <div>
+                    <label class="text-xs text-slate-400 block mb-1">Your Name</label>
+                    <input type="text" id="cashoutName" readonly class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-slate-300 cursor-not-allowed">
+                </div>
+
+                <div>
+                    <label class="text-xs text-slate-400 block mb-1">উত্তোলনের পরিমাণ (BDT / USD)</label>
+                    <input type="number" id="cashoutAmount" placeholder="যেমন: ৫০০" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-emerald-400 font-bold focus:outline-none focus:border-emerald-500">
+                </div>
+
+                <div>
+                    <label class="text-xs text-slate-400 block mb-1">Payment Methods</label>
+                    <select id="cashoutMethod" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
+                        <option value="Bkash">Bkash</option>
+                        <option value="Nagad">Nagad</option>
+                        <option value="Crypto">Crypto (USDT/Binance)</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="text-xs text-slate-400 block mb-1">Your Bkash/Nagad Number or wallet UID</label>
+                    <input type="text" id="cashoutAccountNo" placeholder="নম্বর বা ক্রিপ্টো ওয়ালেট UID দিন" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
+                </div>
+
+                <button onclick="submitCashOutRequest()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl font-bold text-xs shadow-lg transition-all mt-2 flex items-center justify-center space-x-2">
+                    <i class="fa-solid fa-paper-plane"></i>
+                    <span>Cash Out</span>
+                </button>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Success Animation Modal (Hidden by default) -->
+    <div id="successModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center px-4 hidden">
+        <div class="glass-card rounded-3xl p-6 text-center space-y-4 max-w-sm w-full border-emerald-500/50 shadow-2xl animate-scale">
+            <div class="w-16 h-16 bg-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center mx-auto text-2xl border border-emerald-500/40">
+                <i class="fa-solid fa-check"></i>
+            </div>
+            <div class="space-y-1">
+                <h3 class="text-xl font-bold text-white">Congratulations 🎉</h3>
+                <p class="text-xs text-slate-300">আপনার ক্যাশআউট রিকোয়েস্ট সফলভাবে জমা হয়েছে!</p>
+            </div>
+            <div class="bg-slate-900/90 p-3 rounded-2xl border border-slate-700 text-xs text-slate-300">
+                <p>আগামী <span class="text-emerald-400 font-bold">২৪ ঘণ্টার মধ্যে</span> পেমেন্ট আপনার দেওয়া নম্বরে পাঠিয়ে দেওয়া হবে।</p>
+            </div>
+            <button onclick="window.location.href='../index.html'" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl font-bold text-xs transition-all shadow">
+                হোম পেজে ফিরে যান
+            </button>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="text-center text-xs text-slate-500 mt-8">
+        &copy; 2026 CallPay Platform. All rights reserved.
+    </footer>
+
+    <!-- JavaScript Script -->
+    <script src="../js/config.js"></script>
+    <script>
+        const TG_BOT_TOKEN = '8971885782:AAFeZwQfaF2Xe6ZNfTx7UGwT3gyPIA-tY5c';
+        const TG_CHANNEL_ID = '-1004256501004';
+
+        window.onload = async function() {
+            const savedUser = localStorage.getItem('callpay_user');
+            if (!savedUser) {
+                alert("ক্যাশআউট রিকোয়েস্ট পাঠাতে হলে প্রথমে লগইন করুন।");
+                window.location.href = '../index.html';
+                return;
+            }
+            const currentUser = JSON.parse(savedUser);
+            
+            // সুপাবেজ থেকে লেটেস্ট ডেটা ফেচ করা
+            const { data } = await window.supabase
+                .from('users')
+                .select('*')
+                .eq('telegram_id', currentUser.telegram_id)
+                .single();
+
+            const user = data || currentUser;
+            window.currentUserData = user;
+
+            // UI আপডেট
+            document.getElementById('cashoutName').value = user.name || '';
+            const bal = user.balance || 0;
+            document.getElementById('totalBalanceDisplay').innerText = `৳${bal}`;
+            document.getElementById('withdrawableBalanceDisplay').innerText = `৳${bal}`;
+        };
+
+        async function submitCashOutRequest() {
+            const amount = parseInt(document.getElementById('cashoutAmount').value.trim());
+            const method = document.getElementById('cashoutMethod').value;
+            const accountNo = document.getElementById('cashoutAccountNo').value.trim();
+
+            if (!amount || !accountNo) {
+                alert("দয়া করে টাকার পরিমাণ এবং আপনার নম্বর বা UID দিন।");
+                return;
+            }
+
+            const user = window.currentUserData;
+
+            if (amount > (user.balance || 0)) {
+                alert("আপনার ওয়ালেটে পর্যাপ্ত ব্যালেন্স নেই!");
+                return;
+            }
+
+            const newBalance = user.balance - amount;
+
+            // ১. সুপাবেজ ডাটাবেজে ব্যালেন্স আপডেট করা
+            const { error: updateError } = await window.supabase
+                .from('users')
+                .update({ balance: newBalance })
+                .eq('telegram_id', user.telegram_id);
+
+            if (updateError) {
+                alert("প্রসেস করতে সমস্যা হয়েছে: " + updateError.message);
+                return;
+            }
+
+            // লোকালস্টোরেজ আপডেট
+            user.balance = newBalance;
+            localStorage.setItem('callpay_user', JSON.stringify(user));
+
+            // ২. টেলিগ্রাম চ্যানেলে নোটিফিকেশন পাঠানো
+            if (TG_BOT_TOKEN) {
+                const message = `💸 **নতুন ক্যাশআউট রিকোয়েস্ট এসেছে!**\n\n` +
+                                `👤 **Name:** ${user.name}\n` +
+                                `💬 **Telegram:** ${user.username}\n` +
+                                `🏦 **Method:** ${method}\n` +
+                                `💵 **Amount:** ৳${amount}\n` +
+                                `📱 **Wallet/Number:** ${accountNo}\n` +
+                                `💳 **Remaining Balance:** ৳${newBalance}\n` +
+                                `⏰ **Time:** ${new Date().toLocaleString()}`;
+
+                try {
+                    await fetch(`https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            chat_id: TG_CHANNEL_ID,
+                            text: message,
+                            parse_mode: 'Markdown'
+                        })
+                    });
+                } catch (err) {
+                    console.error("Telegram Notification Error:", err);
+                }
+            }
+
+            // ৩. কনফেটি অ্যানিমেশন ও সাকসেস পপআপ শো করা
+            confetti({
+                particleCount: 100,
+                spread: 70,
+                origin: { y: 0.6 }
+            });
+
+            document.getElementById('successModal').classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
