@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CallPay - Get Verified Badge</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Supabase JS SDK CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+        }
+        .glass-card {
+            background: rgba(30, 41, 59, 0.75);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+    </style>
+</head>
+<body class="min-h-screen pb-12 flex flex-col justify-between">
+
+    <!-- Header / Navbar -->
+    <header class="glass-card sticky top-0 z-40 px-4 py-3 flex justify-between items-center shadow-md max-w-md mx-auto w-full">
+        <div class="flex items-center space-x-2 cursor-pointer" onclick="window.location.href='../index.html'">
+            <div class="w-9 h-9 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-500 flex items-center justify-center font-bold text-white shadow-md">
+                <i class="fa-solid fa-certificate text-sm"></i>
+            </div>
+            <span class="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-indigo-400">Verification</span>
+        </div>
+
+        <button onclick="window.location.href='../index.html'" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-xs px-3 py-1.5 rounded-xl font-bold transition-all">
+            <i class="fa-solid fa-house mr-1"></i> হোম পেজ
+        </button>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="max-w-md mx-auto px-4 mt-6 w-full space-y-4">
+        
+        <!-- Info Banner -->
+        <div class="glass-card rounded-2xl p-5 border-blue-500/30 space-y-2 shadow-lg text-center">
+            <div class="w-14 h-14 bg-blue-500/20 text-blue-400 rounded-full flex items-center justify-center mx-auto text-xl border border-blue-500/30">
+                <i class="fa-solid fa-shield-check"></i>
+            </div>
+            <h2 class="text-base font-bold text-white">ভেরিফাইড ব্যাজ (Verified Badge)</h2>
+            <p class="text-xs text-slate-400">আপনার প্রোফাইলে ব্লু টিক (✓) ব্যাজ পেতে আপনার সঠিক তথ্য দিয়ে আবেদন করুন। এডমিন যাচাই করে ব্যাজ প্রদান করবেন।</p>
+        </div>
+
+        <!-- Verification Form -->
+        <div class="glass-card rounded-2xl p-5 space-y-4 border-slate-700">
+            <div class="space-y-3">
+                <div>
+                    <label class="text-xs text-slate-400 block mb-1">আপনার নাম</label>
+                    <input type="text" id="verifyName" readonly class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-slate-300 cursor-not-allowed">
+                </div>
+
+                <div>
+                    <label class="text-xs text-slate-400 block mb-1">টেলিগ্রাম ইউজারনেম</label>
+                    <input type="text" id="verifyTelegram" readonly class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-slate-300 cursor-not-allowed">
+                </div>
+
+                <div>
+                    <label class="text-xs text-slate-400 block mb-1">WhatsApp অথবা Imo নম্বর <span class="text-red-400">*</span></label>
+                    <input type="text" id="verifyContact" placeholder="যেমন: +8801XXXXXXXXX" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500">
+                    <p class="text-[10px] text-slate-500 mt-1">যোগাযোগের জন্য সক্রিয় নম্বর দিন।</p>
+                </div>
+
+                <button onclick="submitVerificationRequest()" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-bold text-xs shadow-lg transition-all mt-2 flex items-center justify-center space-x-2">
+                    <i class="fa-solid fa-paper-plane"></i>
+                    <span>ভেরিফিকেশনের জন্য আবেদন করুন</span>
+                </button>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="text-center text-xs text-slate-500 mt-8">
+        &copy; 2026 CallPay Platform. All rights reserved.
+    </footer>
+
+    <!-- JavaScript Files Import (Using Relative Paths) -->
+    <script src="../js/config.js"></script>
+    <script>
+        // টেলিগ্রাম বট কনফিগারেশন (নোটিফিকেশন পাঠানোর জন্য)
+        const TG_BOT_TOKEN = '8679582719:AAHQGZepICfO9Bb98THsvOL8H9vEFYiB5is';
+        const TG_CHANNEL_ID = '-1004350995184';
+
+        window.onload = function() {
+            // লোকালস্টোরেজ বা গ্লোবাল স্টেট থেকে ইউজার লোড করা
+            const savedUser = localStorage.getItem('callpay_user');
+            if (!savedUser) {
+                alert("আবেদন করতে হলে প্রথমে লগইন করুন।");
+                window.location.href = '../index.html';
+                return;
+            }
+
+            const currentUser = JSON.parse(savedUser);
+            if (currentUser.is_verified) {
+                alert("আপনার অ্যাকাউন্টটি ইতিমধ্যে ভেরিফাইড করা আছে!");
+                window.location.href = '../index.html';
+                return;
+            }
+
+            // ইনপুট ফিল্ডে ইউজার ডেটা বসানো
+            document.getElementById('verifyName').value = currentUser.name || '';
+            document.getElementById('verifyTelegram').value = currentUser.username || '';
+            window.currentUserData = currentUser;
+        };
+
+        // ভেরিফিকেশন রিকোয়েস্ট সাবমিট ফাংশন
+        async function submitVerificationRequest() {
+            const contactInput = document.getElementById('verifyContact').value.trim();
+
+            if (!contactInput) {
+                alert("দয়া করে আপনার WhatsApp বা Imo নম্বর দিন।");
+                return;
+            }
+
+            const user = window.currentUserData;
+
+            // ১. Supabase-এ ইউজারের স্ট্যাটাস pending করা এবং কন্টাক্ট নম্বর আপডেট করা (প্রয়োজনে)
+            const { error } = await window.supabase
+                .from('users')
+                .update({ status: 'pending' })
+                .eq('telegram_id', user.telegram_id);
+
+            if (error) {
+                alert("আবেদন পাঠাতে সমস্যা হয়েছে: " + error.message);
+                return;
+            }
+
+            // ২. টেলিগ্রাম চ্যানেলে নোটিফিকেশন পাঠানো
+            if (TG_BOT_TOKEN) {
+                const message = `🛡️ **নতুন ভেরিফিকেশন আবেদন এসেছে!**\n\n` +
+                                `👤 **নাম:** ${user.name}\n` +
+                                `💬 **টেলিগ্রাম:** ${user.username}\n` +
+                                `📱 **WhatsApp/Imo:** ${contactInput}\n` +
+                                `⏰ **সময়:** ${new Date().toLocaleString()}`;
+
+                try {
+                    await fetch(`https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            chat_id: TG_CHANNEL_ID,
+                            text: message,
+                            parse_mode: 'Markdown'
+                        })
+                    });
+                } catch (err) {
+                    console.error("Telegram Notification Error:", err);
+                }
+            }
+
+            alert("সফলভাবে ভেরিফিকেশনের আবেদন জমা দেওয়া হয়েছে! এডমিন যাচাই করে আপনার ব্যাজ অনুমোদন করবেন।");
+            window.location.href = '../index.html';
+        }
+    </script>
+</body>
+</html>
